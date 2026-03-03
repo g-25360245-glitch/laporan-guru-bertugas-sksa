@@ -1,0 +1,94 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  
+  /* Redefine ALL common colors to use HSL instead of OKLCH to avoid html2canvas errors */
+  --color-slate-50: hsl(210, 40%, 98%);
+  --color-slate-100: hsl(210, 40%, 96%);
+  --color-slate-200: hsl(214, 32%, 91%);
+  --color-slate-300: hsl(213, 27%, 84%);
+  --color-slate-400: hsl(215, 20%, 65%);
+  --color-slate-500: hsl(215, 16%, 47%);
+  --color-slate-600: hsl(215, 19%, 35%);
+  --color-slate-700: hsl(215, 25%, 27%);
+  --color-slate-800: hsl(217, 33%, 17%);
+  --color-slate-900: hsl(222, 47%, 11%);
+
+  --color-emerald-50: hsl(149, 80%, 95%);
+  --color-emerald-100: hsl(149, 75%, 90%);
+  --color-emerald-500: hsl(160, 84%, 39%);
+  --color-emerald-600: hsl(161, 94%, 30%);
+  --color-emerald-700: hsl(163, 94%, 24%);
+
+  --color-blue-50: hsl(210, 100%, 96%);
+  --color-blue-600: hsl(217, 91%, 60%);
+
+  --color-amber-50: hsl(48, 100%, 96%);
+  --color-amber-600: hsl(37, 91%, 55%);
+
+  --color-rose-50: hsl(0, 100%, 96%);
+  --color-rose-600: hsl(346, 84%, 61%);
+}
+
+:root {
+  --background: hsl(0 0% 100%);
+  --foreground: hsl(0 0% 9%);
+  --primary: hsl(222 47% 11%);
+  --primary-foreground: hsl(210 40% 98%);
+  --secondary: hsl(210 40% 96%);
+  --secondary-foreground: hsl(222 47% 11%);
+  --muted: hsl(210 40% 96%);
+  --muted-foreground: hsl(215 16% 47%);
+  --accent: hsl(210 40% 96%);
+  --accent-foreground: hsl(222 47% 11%);
+  --border: hsl(214 32% 91%);
+  --input: hsl(214 32% 91%);
+  --ring: hsl(222 47% 11%);
+}
+
+@layer base {
+  body {
+    @apply font-sans bg-slate-50 text-slate-900;
+  }
+}
+
+.report-page {
+  background: white;
+  width: 210mm;
+  min-height: 297mm;
+  padding: 20mm;
+  margin: 0 auto;
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+
+@media print {
+  .no-print {
+    display: none;
+  }
+  body {
+    background: white;
+  }
+  .report-page {
+    box-shadow: none;
+    margin: 0;
+    padding: 0;
+  }
+}
+
+/* Safe mode for PDF capture to avoid oklch errors */
+[data-pdf-mode="true"], [data-pdf-mode="true"] * {
+  color: #000000 !important;
+  border-color: #000000 !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  --tw-shadow: 0 0 #0000 !important;
+  --tw-ring-color: transparent !important;
+}
+
+[data-pdf-mode="true"] .bg-slate-50 { background-color: #f8fafc !important; }
+[data-pdf-mode="true"] .bg-slate-100 { background-color: #f1f5f9 !important; }
+[data-pdf-mode="true"] .bg-emerald-600 { background-color: #059669 !important; }
