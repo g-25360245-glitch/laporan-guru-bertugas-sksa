@@ -40,6 +40,7 @@ interface ReportData {
 }
 
 export default function App() {
+  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzFoVhO5XG5vaCNW87Ba_4I6dVUelAMre17nR4hn4jU918B5co2BmNy5AAJa9mQDvc/exec';
   const [step, setStep] = useState<Step>('selection');
   const [mingguId, setMingguId] = useState<number>(0);
   const [kumpulanId, setKumpulanId] = useState<number>(0);
@@ -78,10 +79,21 @@ export default function App() {
 
   const fetchReports = async () => {
     try {
-      const res = await fetch('/api/reports');
+      const res = await fetch(`${APPS_SCRIPT_URL}?action=list`);
       if (!res.ok) throw new Error("Failed to fetch");
-      const data = await res.json();
-      setReports(data.map((r: any) => ({ ...r.data, id: r.id, createdAt: r.createdAt })));
+
+      const result = await res.json();
+      if (result.status !== 'success') {
+        throw new Error(result.message || 'Gagal ambil data laporan');
+      }
+
+      setReports(
+        result.data.map((r: any) => ({
+          ...r.data,
+          id: r.id,
+          createdAt: r.createdAt
+        }))
+      );
     } catch (error) {
       console.error("Failed to fetch reports", error);
     }
@@ -121,23 +133,28 @@ export default function App() {
 
   const handleHantarPelaporan = async () => {
     if (!reportRef.current) return;
-    
+
     setLoading(true);
     setLoadingText("Menyimpan data...");
-    
+
     try {
-      // 1. SIMPAN LOKAL
-      const localRes = await fetch('/api/reports', {
+      const localRes = await fetch(APPS_SCRIPT_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({
+          action: 'create',
           mingguId: reportData.mingguId,
           kumpulanId: reportData.kumpulanId,
           data: reportData
         })
       });
 
-      if (!localRes.ok) throw new Error("Gagal simpan ke pangkalan data lokal");
+      if (!localRes.ok) throw new Error("Gagal simpan ke Google Sheet");
+
+      const result = await localRes.json();
+      if (result.status !== 'success') {
+        throw new Error(result.message || "Gagal menghantar laporan");
+      }
 
       alert("Laporan telah berjaya disimpan!");
       await fetchReports();
@@ -157,26 +174,35 @@ export default function App() {
   const handleDeleteReport = async (id: number) => {
     setLoading(true);
     setLoadingText("Memadam laporan...");
-    
+
     try {
-      const response = await fetch(`/api/reports/${id}`, {
-        method: "DELETE",
+      const response = await fetch(APPS_SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          action: 'delete',
+          id
+        })
       });
 
-      if (response.ok) {
-        setShowStatus({ message: "Laporan berjaya dipadam.", type: 'success' });
-        setReports(prev => prev.filter(r => Number(r.id) !== id));
-        await fetchReports();
-      } else {
-        setShowStatus({ message: "Gagal memadam laporan.", type: 'error' });
+      if (!response.ok) {
+        throw new Error("Gagal memadam laporan");
       }
+
+      const result = await response.json();
+      if (result.status !== 'success') {
+        throw new Error(result.message || "Gagal memadam laporan");
+      }
+
+      setShowStatus({ message: "Laporan berjaya dipadam.", type: 'success' });
+      setReports(prev => prev.filter(r => Number(r.id) !== id));
+      await fetchReports();
     } catch (error) {
-      setShowStatus({ message: "Ralat sambungan pelayan.", type: 'error' });
+      setShowStatus({ message: "Gagal memadam laporan.", type: 'error' });
     } finally {
       setLoading(false);
       setLoadingText("");
       setDeleteConfirmId(null);
-      // Auto hide status after 3 seconds
       setTimeout(() => setShowStatus(null), 3000);
     }
   };
@@ -638,16 +664,18 @@ export default function App() {
           <h2 style={{ fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', margin: '4px 0 0 0', color: '#059669' }}>UNIT HEM SK SUNGAI ABONG</h2>
           
           <table style={{ width: '100%', marginTop: '12px', borderCollapse: 'collapse', fontSize: '10px', textAlign: 'left', tableLayout: 'fixed' }}>
-            <tr>
-              <td style={{ border: '1.5px solid #000000', padding: '6px', backgroundColor: '#f9fafb', width: '40%', verticalAlign: 'top' }}>
-                <p style={{ margin: '0' }}><strong>MINGGU:</strong> {selectedMinggu?.id}</p>
-                <p style={{ margin: '4px 0 0 0' }}><strong>TARIKH:</strong> {selectedMinggu?.dates}</p>
-              </td>
-              <td style={{ border: '1.5px solid #000000', padding: '6px', backgroundColor: '#f9fafb', verticalAlign: 'top' }}>
-                <p style={{ margin: '0' }}><strong>KUMPULAN BERTUGAS:</strong> {reportData.kumpulanId}</p>
-                <p style={{ margin: '4px 0 0 0', lineHeight: '1.3' }}><strong>GURU BERTUGAS:</strong> {KUMPULAN_DATA.find(k => k.id === reportData.kumpulanId)?.members.join(', ')}</p>
-              </td>
-            </tr>
+            <tbody>
+              <tr>
+                <td style={{ border: '1.5px solid #000000', padding: '6px', backgroundColor: '#f9fafb', width: '40%', verticalAlign: 'top' }}>
+                  <p style={{ margin: '0' }}><strong>MINGGU:</strong> {selectedMinggu?.id}</p>
+                  <p style={{ margin: '4px 0 0 0' }}><strong>TARIKH:</strong> {selectedMinggu?.dates}</p>
+                </td>
+                <td style={{ border: '1.5px solid #000000', padding: '6px', backgroundColor: '#f9fafb', verticalAlign: 'top' }}>
+                  <p style={{ margin: '0' }}><strong>KUMPULAN BERTUGAS:</strong> {reportData.kumpulanId}</p>
+                  <p style={{ margin: '4px 0 0 0', lineHeight: '1.3' }}><strong>GURU BERTUGAS:</strong> {KUMPULAN_DATA.find(k => k.id === reportData.kumpulanId)?.members.join(', ')}</p>
+                </td>
+              </tr>
+            </tbody>
           </table>
         </div>
 

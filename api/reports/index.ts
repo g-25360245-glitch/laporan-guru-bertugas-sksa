@@ -44,6 +44,33 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       if (error) throw error;
 
+      // Post to Google Apps Script
+      const gasUrl = process.env.GAS_WEB_APP_URL;
+      const eduquestToken = process.env.EDUQUEST_TOKEN;
+      
+      if (gasUrl && eduquestToken) {
+        try {
+          await fetch(gasUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              token: eduquestToken,
+              payload: {
+                id: data.id,
+                mingguId,
+                kumpulanId,
+                ...reportData
+              }
+            })
+          });
+        } catch (gasError) {
+          console.error('Failed to post to GAS:', gasError);
+          // We don't throw here because Supabase save was successful
+        }
+      }
+
       return res.status(200).json({
         id: data.id,
         createdAt: data.created_at,
